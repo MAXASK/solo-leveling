@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Solo Leveling Panel</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+
+  <style>
+    :root{
+      --bg1:#07070a;
+      --bg2:#14102a;
+      --bg3:#2d1b69;
+      --card:rgba(255,255,255,.08);
+      --card2:rgba(0,0,0,.35);
+      --stroke:rgba(255,255,255,.14);
+      --text:#eae8ff;
+      --muted:rgba(234,232,255,.7);
+      --gold:#ffd700;
+      --green:#41d17d;
+      --red:#ff4d4d;
+      --shadow: 0 18px 55px rgba(0,0,0,.55);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+      color:var(--text);
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(255,215,0,.07), transparent 60%),
+                  radial-gradient(900px 500px at 90% 10%, rgba(120,90,255,.18), transparent 60%),
+                  linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 45%, var(--bg3) 120%);
+      padding:20px;
+      overflow-x: hidden;
+    }
+
+    @keyframes fadeInDown{from{opacity:0;transform:translateY(-30px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes slideInLeft{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes slideInRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+    @keyframes glow{0%{filter:drop-shadow(0 0 5px rgba(255,215,0,.3))}50%{filter:drop-shadow(0 0 20px rgba(255,215,0,.6))}100%{filter:drop-shadow(0 0 5px rgba(255,215,0,.3))}}
+    @keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+    @keyframes float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-8px)}}
+
+    .container{max-width:1200px;margin:0 auto}
+    h1{
+      margin:8px 0 24px;
+      text-align:center;
+      font-size: 2.8rem;
+      letter-spacing:2px;
+      font-weight:900;
+      background: linear-gradient(45deg, var(--gold), #ff6b35, var(--gold));
+      background-size: 200% 100%;
+      animation: shimmer 3s infinite, glow 2s ease-in-out infinite;
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      text-shadow: 0 0 30px rgba(255,215,0,.2);
+    }
+
+    .topbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      justify-content:center;
+      align-items:center;
+      margin-bottom:20px;
+      animation: fadeInDown .6s ease-out;
+    }
+
+    .input, .btn{
+      border-radius:14px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.10);
+      backdrop-filter: blur(16px);
+      color: var(--text);
+      padding: 13px 16px;
+      font-size: 16px;
+      font-weight:500;
+      outline: none;
+      transition: all .25s cubic-bezier(.4,.0,.2,1);
+      position:relative;
+    }
+    .input{min-width: 240px}
+    .input::placeholder{color:rgba(234,232,255,.4)}
+    .input:focus{
+      box-shadow: 0 0 0 3px rgba(120,170,255,.35), 0 12px 35px rgba(0,0,0,.4);
+      transform: translateY(-3px);
+      border-color:rgba(120,170,255,.6);
+      background: rgba(255,255,255,.15);
+    }
+
+    .btn{
+      cursor:pointer;
+      border: 0;
+      background: linear-gradient(135deg, #2fbd6c 0%, #1fa257 100%);
+      font-weight: 700;
+      padding: 13px 22px;
+      white-space:nowrap;
+      box-shadow: 0 12px 28px rgba(31,162,87,.25);
+      position:relative;
+      overflow:hidden;
+    }
+    .btn::before{
+      content:'';
+      position:absolute;
+      top:50%;
+      left:50%;
+      width:0;
+      height:0;
+      border-radius:50%;
+      background:rgba(255,255,255,.3);
+      transform:translate(-50%,-50%);
+      transition: width .6s, height .6s;
+    }
+    .btn:active::before{width:300px;height:300px}
+    .btn:hover{
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(31,162,87,.35);
+    }
+    .btn.secondary{
+      background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+      border: 1.5px solid rgba(120,170,255,.4);
+      box-shadow: 0 8px 20px rgba(120,170,255,.1);
+    }
+    .btn.secondary:hover{
+      background: linear-gradient(135deg, rgba(255,255,255,.20), rgba(255,255,255,.14));
+      border-color:rgba(120,170,255,.6);
+    }
+
+    .status{
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      padding: 12px 18px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.75);
+      border: 1.5px solid rgba(255,255,255,.14);
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 12px 35px rgba(0,0,0,.45);
+      user-select:none;
+      backdrop-filter: blur(10px);
+      animation: slideInRight .5s ease-out;
+    }
+    .status.ok{
+      color: var(--green);
+      border-color:rgba(65,209,125,.4);
+      box-shadow: 0 0 20px rgba(65,209,125,.2), 0 12px 35px rgba(0,0,0,.45);
+    }
+    .status.bad{
+      color: var(--red);
+      border-color:rgba(255,77,77,.4);
+      box-shadow: 0 0 20px rgba(255,77,77,.2), 0 12px 35px rgba(0,0,0,.45);
+    }
+
+    .messages{max-width: 1000px;margin: 0 auto 20px;min-height:40px}
+    .msg{
+      margin: 10px 0;
+      padding: 14px 18px;
+      border-radius:14px;
+      border: 1px solid var(--stroke);
+      background: rgba(0,0,0,.45);
+      box-shadow: 0 12px 35px rgba(0,0,0,.3);
+      animation: slideInLeft .4s ease-out;
+      backdrop-filter: blur(10px);
+    }
+    .msg.ok{
+      border-color: rgba(65,209,125,.45);
+      background: rgba(65,209,125,.1);
+      color:#a8f5d4;
+    }
+    .msg.bad{
+      border-color: rgba(255,77,77,.45);
+      background: rgba(255,77,77,.1);
+      color:#ff9999;
+    }
+    .muted{color:var(--muted);font-size: 13px}
+
+    #panel{
+      display:none;
+      animation: fadeInDown .7s ease-out;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 400px;
+      gap: 28px;
+      align-items:start;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .main-col{
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+      min-width:0;
+    }
+    @media (max-width: 1300px){
+      .grid{
+        grid-template-columns: 1fr;
+        max-width: 900px;
+      }
+      .right-panel{
+        grid-column: 1;
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap:20px;
+      }
+    }
+    @media (max-width: 768px){
+      .grid{
+        gap:16px;
+      }
+      .right-panel{
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card{
+      background: linear-gradient(135deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.04) 100%);
+      border: 1px solid var(--stroke);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      overflow:hidden;
+      position:relative;
+      backdrop-filter: blur(20px);
+      transition: all .3s ease;
+      animation: slideInLeft .5s ease-out;
+    }
+    .card::before{
+      content:'';
+      position:absolute;
+      top:0;
+      left:-100%;
+      width:100%;
+      height:100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent);
+      transition: left .6s;
+    }
+    .card:hover{
+      transform: translateY(-8px);
+      border-color: rgba(120,170,255,.3);
+      box-shadow: 0 25px 65px rgba(120,170,255,.15), var(--shadow);
+    }
+    .card:hover::before{left:100%}
+    .card h2{
+      margin:0 0 16px;
+      font-size: 1.25rem;
+      color: var(--gold);
+      letter-spacing: .5px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 14px;
+      align-items:center;
+      margin: 12px 0;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-width: 200px;
+      flex: 1;
+    }
+    .label{
+      font-size: 12px;
+      color: var(--muted);
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+    .small{min-width: 140px}
+
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      margin-top: 12px;
+    }
+    .statBox{
+      background: linear-gradient(135deg, rgba(255,215,0,.08), rgba(255,215,0,.02));
+      border: 1.5px solid rgba(255,215,0,.25);
+      border-radius:16px;
+      padding: 14px;
+      text-align:center;
+      transition: all .25s ease;
+      cursor:pointer;
+      position:relative;
+      overflow:hidden;
+    }
+    .statBox::after{
+      content:'';
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+      background: radial-gradient(circle at center, rgba(255,215,0,.1), transparent);
+      opacity:0;
+      transition: opacity .3s;
+    }
+    .statBox:hover{
+      transform: translateY(-4px);
+      border-color: rgba(255,215,0,.5);
+      background: linear-gradient(135deg, rgba(255,215,0,.15), rgba(255,215,0,.05));
+      box-shadow: 0 8px 25px rgba(255,215,0,.2);
+    }
+    .statBox:hover::after{opacity:1}
+    .statBox .name{
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.3px;
+    }
+    .statBox input{
+      width: 100%;
+      text-align:center;
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--gold);
+      background: transparent;
+      border: 0;
+      outline: none;
+    }
+
+    .list{
+      list-style:none;
+      padding:0;
+      margin: 12px 0 0;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      max-height: 300px;
+      overflow-y:auto;
+    }
+    .list::-webkit-scrollbar{width:6px}
+    .list::-webkit-scrollbar-track{background: rgba(0,0,0,.2);border-radius:10px}
+    .list::-webkit-scrollbar-thumb{background: rgba(255,215,0,.3);border-radius:10px;transition: background .3s}
+    .list::-webkit-scrollbar-thumb:hover{background: rgba(255,215,0,.5)}
+
+    .item{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 12px;
+      background: linear-gradient(135deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,215,0,.15);
+      border-radius:14px;
+      padding: 12px 14px;
+      transition: all .25s ease;
+      animation: slideInLeft .4s ease-out;
+    }
+    .item:hover{
+      transform: translateX(4px);
+      border-color: rgba(255,215,0,.35);
+      background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.07));
+      box-shadow: 0 6px 20px rgba(255,215,0,.15);
+    }
+    .item strong{
+      color: var(--gold);
+      font-weight:700;
+    }
+    .chip{
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+      font-weight:600;
+      transition: all .25s ease;
+    }
+    .item:hover .chip{
+      background: rgba(255,255,255,.18);
+      border-color: rgba(255,255,255,.35);
+    }
+    .chip.green{
+      color: var(--green);
+      border-color: rgba(65,209,125,.35);
+      background: rgba(65,209,125,.1);
+    }
+    .item:hover .chip.green{
+      background: rgba(65,209,125,.2);
+      border-color: rgba(65,209,125,.5);
+    }
+
+    .right-panel{
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+    }
+    .card.small-card{animation: slideInRight .5s ease-out}
+
+    @media (max-width: 768px){
+      .grid{gap:16px}
+      .card{padding:16px}
+      .field{min-width: 160px}
+      .right-panel{gap:14px}
+      h1{font-size: 2.2rem}
+      .stats{grid-template-columns: repeat(auto-fit, minmax(100px, 1fr))}
+    }
+  </style>
+</head>
+
+<body>
+  <div id="status" class="status bad">🔴 offline</div>
+
+  <div class="container">
+    <h1>⚔️ SOLO LEVELING</h1>
+
+    <div class="topbar">
+      <input id="roomId" class="input" type="text" placeholder="Введи код комнаты для доступа" value="" />
+      <button class="btn" id="btnLoad">🔗 Вход</button>
+    </div>
+
+    <div style="text-align:center;margin-bottom:30px;padding:20px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.3);border-radius:16px;backdrop-filter:blur(10px)">
+      <div style="color:var(--gold);font-size:13px;margin-bottom:8px;font-weight:700">📱 ДЕЛИСЬ ССЫЛКОЙ</div>
+      <div style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:12px">
+        <input id="shareLink" class="input" type="text" readonly style="min-width:300px;cursor:pointer" />
+        <button class="btn" id="btnCopyLink" style="padding:13px 14px;min-width:auto">📋 Копировать</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Отправь эту ссылку друзьям — они смогут открыть и редактировать персонажа вместе с тобой!</div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div id="panel">
+      <div class="grid">
+        <!-- ОСНОВНАЯ ПАНЕЛЬ (ЛЕВАЯ КОЛОНКА) -->
+        <div class="main-col">
+          <div class="card">
+            <h2>👤 Основное</h2>
+
+            <div class="row">
+              <div class="field">
+                <div class="label">Имя</div>
+                <input id="name" class="input" type="text" placeholder="Сон Джину" />
+              </div>
+              <div class="field small">
+                <div class="label">Уровень</div>
+                <input id="level" class="input" type="number" min="1" max="999" />
+              </div>
+              <div class="field">
+                <div class="label">Класс</div>
+                <input id="class" class="input" type="text" placeholder="Без класса" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="field small">
+                <div class="label">Свободные очки</div>
+                <input id="freePoints" class="input" type="number" min="0" max="9999" />
+              </div>
+              <div class="field">
+                <div class="label">Титулы</div>
+                <input id="titles" class="input" type="text" placeholder="Выживший, Охотник" />
+              </div>
+              <button class="btn" id="btnAddPoint" style="padding:13px 18px">⚔️ +1 Сила</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>⚔️ Характеристики</h2>
+            <div class="stats">
+              <div class="statBox"><div class="name">Сила</div><input id="strength" type="number" min="1" max="999" /></div>
+              <div class="statBox"><div class="name">Ловкость</div><input id="agility" type="number" min="1" max="999" /></div>
+              <div class="statBox"><div class="name">Выносливость</div><input id="endurance" type="number" min="1" max="999" /></div>
+              <div class="statBox"><div class="name">Интеллект</div><input id="intelligence" type="number" min="1" max="999" /></div>
+              <div class="statBox"><div class="name">Восприятие</div><input id="perception" type="number" min="1" max="999" /></div>
+            </div>
+
+            <div class="row" style="margin-top:18px">
+              <div class="field small">
+                <div class="label">❤️ HP</div>
+                <input id="hp" class="input" type="number" min="1" max="99999" />
+              </div>
+              <div class="field small">
+                <div class="label">💙 MP</div>
+                <input id="mp" class="input" type="number" min="1" max="99999" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ПРАВАЯ ПАНЕЛЬ (ФИКСИРОВАННАЯ) -->
+        <div class="right-panel">
+          <div class="card small-card">
+            <h2>🌀 Навыки</h2>
+            <div class="row">
+              <div class="field" style="flex:1">
+                <div class="label">Навык</div>
+                <input id="newSkill" class="input" type="text" placeholder="Рывок" />
+              </div>
+              <div class="field small" style="min-width:80px">
+                <div class="label">Ур.</div>
+                <input id="newSkillLevel" class="input" type="number" min="1" max="99" value="1" />
+              </div>
+              <button class="btn" id="btnAddSkill" style="align-self:flex-end;padding:13px 14px;min-width:auto">✨</button>
+            </div>
+            <ul id="skills" class="list"></ul>
+          </div>
+
+          <div class="card small-card">
+            <h2>🎒 Инвентарь</h2>
+            <div class="row">
+              <div class="field" style="flex:1">
+                <div class="label">Предмет</div>
+                <input id="newItem" class="input" type="text" placeholder="Зелье" />
+              </div>
+              <div class="field small" style="min-width:80px">
+                <div class="label">Кол.</div>
+                <input id="itemQty" class="input" type="number" min="1" max="999" value="1" />
+              </div>
+              <button class="btn" id="btnAddItem" style="align-self:flex-end;padding:13px 14px;min-width:auto">📦</button>
+            </div>
+            <ul id="inventory" class="list"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ТВОЙ ПРАВИЛЬНЫЙ CONFIG (вставь свой из Firebase Console)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCTHUIB6b7ooqU5tncere5uGeoPV3EIEYU",
+    authDomain: "solopanel-38ddd.firebaseapp.com",
+    databaseURL: "https://solopanel-38ddd-default-rtdb.firebaseio.com",
+    projectId: "solopanel-38ddd",
+    storageBucket: "solopanel-38ddd.appspot.com",
+    messagingSenderId: "948451852564",
+    appId: "1:948451852564:web:2a1e8f393f2c871c20"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const $ = (id) => document.getElementById(id);
+  const statusEl = $("status");
+  const messagesEl = $("messages");
+  const panelEl = $("panel");
+
+  let roomId = null;
+  let roomRef = null;
+
+  function msg(text, type = "ok") {
+    const el = document.createElement("div");
+    el.className = "msg " + (type === "ok" ? "ok" : "bad");
+    el.textContent = text;
+    messagesEl.appendChild(el);
+    setTimeout(() => el.remove(), 4500);
+  }
+
+  db.ref(".info/connected").on("value", (snap) => {
+    const ok = snap.val() === true;
+    statusEl.textContent = ok ? "🟢 online" : "🔴 offline";
+    statusEl.className = "status " + (ok ? "ok" : "bad");
+  });
+
+  function defaultState() {
+    return {
+      name: "Сон Джину",
+      level: 1,
+      class: "Без класса",
+      freeSkillPoints: 5,
+      titles: ["Выживший"],
+      stats: { strength: 10, agility: 10, endurance: 10, intelligence: 10, perception: 10 },
+      twoStats: { hp: 100, mp: 50 },
+      skills: {},
+      inventory: {}
+    };
+  }
+
+  function normalizeList(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.filter(Boolean);
+    if (typeof val === "object") {
+      return Object.entries(val).map(([id, obj]) => ({ id, ...obj }));
+    }
+    return [];
+  }
+
+  function renderSkills(list) {
+    const ul = $("skills");
+    if (!list.length) {
+      ul.innerHTML = `<li class="item" style="opacity:.5"><span class="muted">Пусто — добавь навык.</span></li>`;
+      return;
+    }
+    ul.innerHTML = list.map(s => `
+      <li class="item">
+        <strong>${s.name || "Без названия"}</strong>
+        <div class="chip">ур. ${s.level || 1}</div>
+      </li>
+    `).join("");
+  }
+
+  function renderInventory(list) {
+    const ul = $("inventory");
+    if (!list.length) {
+      ul.innerHTML = `<li class="item" style="opacity:.5"><span class="muted">Пусто — добавь предмет.</span></li>`;
+      return;
+    }
+    ul.innerHTML = list.map(i => `
+      <li class="item">
+        <strong>${i.name || "Без названия"}</strong>
+        <div class="chip green">x${i.qty || 1}</div>
+      </li>
+    `).join("");
+  }
+
+  function applyCoreToInputs(state) {
+    const activeId = document.activeElement && document.activeElement.id;
+    const setIfNotActive = (id, value) => {
+      if (activeId === id) return;
+      $(id).value = value;
+    };
+
+    setIfNotActive("name", state.name ?? "");
+    setIfNotActive("level", state.level ?? 1);
+    setIfNotActive("class", state.class ?? "");
+    setIfNotActive("freePoints", state.freeSkillPoints ?? 0);
+    setIfNotActive("titles", Array.isArray(state.titles) ? state.titles.join(", ") : "");
+
+    const st = state.stats || {};
+    setIfNotActive("strength", st.strength ?? 10);
+    setIfNotActive("agility", st.agility ?? 10);
+    setIfNotActive("endurance", st.endurance ?? 10);
+    setIfNotActive("intelligence", st.intelligence ?? 10);
+    setIfNotActive("perception", st.perception ?? 10);
+
+    const ts = state.twoStats || {};
+    setIfNotActive("hp", ts.hp ?? 100);
+    setIfNotActive("mp", ts.mp ?? 50);
+  }
+
+  function updateShareLink() {
+    if (roomId) {
+      const baseUrl = window.location.origin + window.location.pathname;
+      const fullUrl = baseUrl + "?room=" + encodeURIComponent(roomId);
+      $("shareLink").value = fullUrl;
+    }
+  }
+
+  async function loadRoom() {
+    const id = $("roomId").value.trim();
+    if (!id) { msg("Введи код комнаты.", "bad"); return; }
+
+    roomId = id;
+    roomRef = db.ref(`rooms/${roomId}`);
+    panelEl.style.display = "block";
+    updateShareLink();
+
+    try {
+      const snap = await roomRef.get();
+      if (!snap.exists()) {
+        await roomRef.set(defaultState());
+      }
+
+      let first = true;
+      roomRef.on("value", (snap) => {
+        const data = snap.val() || defaultState();
+        applyCoreToInputs(data);
+        if (first) {
+          msg(`✅ Комната "${roomId}" открыта. Делись ссылкой!`);
+          first = false;
+        }
+      });
+
+      roomRef.child("skills").on("value", (snap) => {
+        renderSkills(normalizeList(snap.val()));
+      });
+
+      roomRef.child("inventory").on("value", (snap) => {
+        renderInventory(normalizeList(snap.val()));
+      });
+
+    } catch (e) {
+      msg("Ошибка: " + (e?.message || e), "bad");
+    }
+  }
+
+  function coreFromInputs() {
+    return {
+      name: $("name").value,
+      level: Number($("level").value || 1),
+      class: $("class").value,
+      freeSkillPoints: Number($("freePoints").value || 0),
+      titles: $("titles").value.split(",").map(t => t.trim()).filter(Boolean),
+      stats: {
+        strength: Number($("strength").value || 10),
+        agility: Number($("agility").value || 10),
+        endurance: Number($("endurance").value || 10),
+        intelligence: Number($("intelligence").value || 10),
+        perception: Number($("perception").value || 10),
+      },
+      twoStats: {
+        hp: Number($("hp").value || 100),
+        mp: Number($("mp").value || 50),
+      }
+    };
+  }
+
+  async function saveCore() {
+    if (!roomRef) { msg("Сначала загрузите комнату.", "bad"); return; }
+    try {
+      await roomRef.update(coreFromInputs());
+    } catch (e) {
+      msg("Ошибка сохранения: " + (e?.message || e), "bad");
+    }
+  }
+
+  async function addPoint() {
+    if (!roomRef) { msg("Сначала загрузите комнату.", "bad"); return; }
+    const fp = Number($("freePoints").value || 0);
+    if (fp <= 0) { msg("Нет свободных очков.", "bad"); return; }
+    $("freePoints").value = fp - 1;
+    $("strength").value = Number($("strength").value || 10) + 1;
+    await saveCore();
+    msg("+1 к силе! ⚔️");
+  }
+
+  async function addSkill() {
+    if (!roomRef) { msg("Сначала загрузите комнату.", "bad"); return; }
+    const name = $("newSkill").value.trim();
+    const level = Number($("newSkillLevel").value || 1);
+    if (!name) { msg("Введите название навыка.", "bad"); return; }
+    try {
+      await roomRef.child("skills").push({ name, level });
+      $("newSkill").value = "";
+      msg(`✨ "${name}" добавлен.`);
+    } catch (e) {
+      msg("Ошибка: " + (e?.message || e), "bad");
+    }
+  }
+
+  async function addItem() {
+    if (!roomRef) { msg("Сначала загрузите комнату.", "bad"); return; }
+    const name = $("newItem").value.trim();
+    const qty = Number($("itemQty").value || 1);
+    if (!name) { msg("Введите название предмета.", "bad"); return; }
+    try {
+      await roomRef.child("inventory").push({ name, qty });
+      $("newItem").value = "";
+      $("itemQty").value = "1";
+      msg(`📦 "${name}" (x${qty}) добавлен.`);
+    } catch (e) {
+      msg("Ошибка: " + (e?.message || e), "bad");
+    }
+  }
+
+  async function writeDefaults() {
+    if (!roomRef) { msg("Сначала загрузите комнату.", "bad"); return; }
+    try {
+      await roomRef.set(defaultState());
+      msg("Дефолт записан. ✅");
+    } catch (e) {
+      msg("Ошибка: " + (e?.message || e), "bad");
+    }
+  }
+
+  $("btnLoad").addEventListener("click", loadRoom);
+  $("btnCopyLink").addEventListener("click", () => {
+    $("shareLink").select();
+    document.execCommand("copy");
+    msg("✅ Ссылка скопирована в буфер обмена!");
+  });
+  $("btnAddPoint").addEventListener("click", addPoint);
+  $("btnAddSkill").addEventListener("click", addSkill);
+  $("btnAddItem").addEventListener("click", addItem);
+
+  const coreIds = ["name","level","class","freePoints","titles","strength","agility","endurance","intelligence","perception","hp","mp"];
+  coreIds.forEach(id => {
+    $(id).addEventListener("blur", saveCore);
+    $(id).addEventListener("keydown", (e) => e.key === "Enter" && $(id).blur());
+  });
+
+  $("roomId").addEventListener("keydown", (e) => e.key === "Enter" && loadRoom());
+  $("newSkill").addEventListener("keydown", (e) => e.key === "Enter" && addSkill());
+  $("newItem").addEventListener("keydown", (e) => e.key === "Enter" && addItem());
+
+  // Проверяем URL при загрузке страницы
+  window.addEventListener("load", () => {
+    const params = new URLSearchParams(window.location.search);
+    const roomFromUrl = params.get("room");
+    if (roomFromUrl) {
+      $("roomId").value = roomFromUrl;
+      setTimeout(loadRoom, 300);
+    }
+  });
+</script>
+</body>
+</html>
