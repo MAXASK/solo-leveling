@@ -489,11 +489,19 @@
             <div class="row" style="margin-top:18px">
               <div class="field small">
                 <div class="label">❤️ HP</div>
-                <input id="hp" class="input" type="number" min="1" max="99999" />
+                <input id="hp" class="input" type="number" min="1" max="999999" readonly style="color:var(--green)" />
               </div>
               <div class="field small">
                 <div class="label">💙 MP</div>
-                <input id="mp" class="input" type="number" min="1" max="99999" />
+                <input id="mp" class="input" type="number" min="1" max="999999" readonly style="color:var(--green)" />
+              </div>
+              <div class="field small">
+                <div class="label">🎁 HP Бонус</div>
+                <input id="hpBonus" class="input" type="number" min="0" max="999999" />
+              </div>
+              <div class="field small">
+                <div class="label">🎁 MP Бонус</div>
+                <input id="mpBonus" class="input" type="number" min="0" max="999999" />
               </div>
             </div>
           </div>
@@ -582,7 +590,7 @@
       freeSkillPoints: 5,
       titles: ["Выживший"],
       stats: { strength: 10, agility: 10, endurance: 10, intelligence: 10, perception: 10 },
-      twoStats: { hp: 100, mp: 50 },
+      twoStats: { hp: 100, mp: 50, hpBonus: 0, mpBonus: 0 },
       skills: {},
       inventory: {}
     };
@@ -625,6 +633,25 @@
     `).join("");
   }
 
+  function calculateHPandMP() {
+    const level = Number($("level").value || 1);
+    const vitality = Number($("endurance").value || 10);
+    const intelligence = Number($("intelligence").value || 10);
+    const hpBonus = Number($("hpBonus").value || 0);
+    const mpBonus = Number($("mpBonus").value || 0);
+
+    // HP = Vitality × (Level + 9)
+    const baseHP = vitality * (level + 9);
+    const totalHP = baseHP + hpBonus;
+
+    // MP = Intelligence × (0.5 × Level - 4.5), минимум 50
+    const baseMP = Math.max(50, intelligence * (0.5 * level - 4.5));
+    const totalMP = baseMP + mpBonus;
+
+    $("hp").value = Math.floor(totalHP);
+    $("mp").value = Math.floor(totalMP);
+  }
+
   function applyCoreToInputs(state) {
     const activeId = document.activeElement && document.activeElement.id;
     const setIfNotActive = (id, value) => {
@@ -646,8 +673,10 @@
     setIfNotActive("perception", st.perception ?? 10);
 
     const ts = state.twoStats || {};
-    setIfNotActive("hp", ts.hp ?? 100);
-    setIfNotActive("mp", ts.mp ?? 50);
+    setIfNotActive("hpBonus", ts.hpBonus ?? 0);
+    setIfNotActive("mpBonus", ts.mpBonus ?? 0);
+
+    setTimeout(calculateHPandMP, 10);
   }
 
   function updateShareLink() {
@@ -713,6 +742,8 @@
       twoStats: {
         hp: Number($("hp").value || 100),
         mp: Number($("mp").value || 50),
+        hpBonus: Number($("hpBonus").value || 0),
+        mpBonus: Number($("mpBonus").value || 0),
       }
     };
   }
@@ -785,10 +816,16 @@
   $("btnAddSkill").addEventListener("click", addSkill);
   $("btnAddItem").addEventListener("click", addItem);
 
-  const coreIds = ["name","level","class","freePoints","titles","strength","agility","endurance","intelligence","perception","hp","mp"];
+  const coreIds = ["name","level","class","freePoints","titles","strength","agility","hpBonus","mpBonus"];
   coreIds.forEach(id => {
     $(id).addEventListener("blur", saveCore);
     $(id).addEventListener("keydown", (e) => e.key === "Enter" && $(id).blur());
+  });
+
+  // Пересчитываем HP/MP при изменении Выносливости, Интеллекта, Уровня или Бонусов
+  ["level","endurance","intelligence","hpBonus","mpBonus"].forEach(id => {
+    $(id).addEventListener("change", calculateHPandMP);
+    $(id).addEventListener("blur", calculateHPandMP);
   });
 
   $("roomId").addEventListener("keydown", (e) => e.key === "Enter" && loadRoom());
